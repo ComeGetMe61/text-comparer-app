@@ -11,11 +11,8 @@ import {
   Github,
   GitCompareArrows,
   LoaderCircle,
-  Monitor,
-  Moon,
   Play,
   ShieldCheck,
-  Sun,
   Trash2,
   X,
 } from "lucide-react";
@@ -37,7 +34,7 @@ import {
   type ComparisonStatus,
 } from "./text";
 
-type ThemeChoice = "system" | "light" | "dark";
+import { ThemePicker, type ThemeChoice } from "./ThemePicker";
 type Source = { text: string; filename?: string };
 const REPO_URL = "https://github.com/ComeGetMe61/text-comparer-app";
 
@@ -204,8 +201,7 @@ function App() {
               : `${status.regions} change ${status.regions === 1 ? "region" : "regions"}`
             : "Comparing…";
   const resultKind = overLimit ? "incomplete" : compared ? status.kind : "idle";
-  const ThemeIcon =
-    themeChoice === "system" ? Monitor : themeChoice === "dark" ? Moon : Sun;
+  const compareShortcut = `${navigator.platform.includes("Mac") ? "⌘" : "Ctrl"} + Enter`;
 
   return (
     <div className="app-shell">
@@ -226,25 +222,7 @@ function App() {
             <span className="live-dot" />
             LOCAL WORKSPACE
           </span>
-          <div className="theme-control">
-            <ThemeIcon size={16} aria-hidden="true" />
-            <select
-              aria-label="Color theme"
-              value={themeChoice}
-              onChange={(event) =>
-                setThemeChoice(event.target.value as ThemeChoice)
-              }
-            >
-              <option value="system">System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-            <ChevronDown
-              size={12}
-              className="select-chevron"
-              aria-hidden="true"
-            />
-          </div>
+          <ThemePicker value={themeChoice} onChange={setThemeChoice} />
           <a
             className="github-link"
             href={REPO_URL}
@@ -335,11 +313,12 @@ function App() {
                 aria-label="Compare"
                 onClick={compare}
                 disabled={overLimit || !!importing}
-                title="Compare (Ctrl or ⌘ + Enter)"
+                title={`Compare (${compareShortcut})`}
+                aria-keyshortcuts="Control+Enter Meta+Enter"
               >
                 <Play size={13} fill="currentColor" />
                 <span>Compare</span>
-                <kbd aria-hidden="true">↵</kbd>
+                <kbd aria-hidden="true">{compareShortcut}</kbd>
               </button>
             </div>
           </div>

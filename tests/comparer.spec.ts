@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { chooseTheme } from "./theme";
 
 async function replaceText(
   page: Page,
@@ -43,6 +44,17 @@ test.beforeEach(async ({ page }) => {
 test("initial state, empty comparison, keyboard shortcut, and clear", async ({
   page,
 }) => {
+  await expect(
+    page.getByRole("button", { name: "Compare", exact: true }).locator("kbd"),
+  ).toHaveText(/^(Ctrl|⌘) \+ Enter$/);
+  const originalEditor = page.getByRole("textbox", {
+    name: "Original text",
+    exact: true,
+  });
+  await originalEditor.press("Enter");
+  await expect(status(page)).toContainText("Ready to compare");
+  await originalEditor.press("ControlOrMeta+A");
+  await originalEditor.press("Backspace");
   await expect(
     page.getByRole("button", { name: "Next change", exact: true }),
   ).toBeDisabled();
@@ -242,7 +254,7 @@ test("themes persist while text is discarded on reload; no content network reque
     )
       requests.push(request.url());
   });
-  await page.getByLabel("Color theme", { exact: true }).selectOption("dark");
+  await chooseTheme(page, "dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await replaceText(page, "Original", "PRIVATE_CONTENT_123");
   await replaceText(page, "Modified", "PRIVATE_CONTENT_456");
@@ -258,8 +270,53 @@ test("themes persist while text is discarded on reload; no content network reque
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(status(page)).toContainText("Ready to compare");
   await expect(page.locator(".pane-footers")).toContainText("0 chars");
-  await page.getByLabel("Color theme", { exact: true }).selectOption("light");
+  await chooseTheme(page, "light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
+test("theme menu supports keyboard navigation, dismissal, and system appearance", async ({
+  page,
+}) => {
+  const trigger = page.getByRole("button", {
+    name: "Color theme",
+    exact: true,
+  });
+  await trigger.focus();
+  await trigger.press("ArrowDown");
+  await expect(
+    page.getByRole("menuitemradio", { name: "System", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(
+    page.getByRole("menuitemradio", { name: "Dark", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(trigger).toBeFocused();
+  await trigger.press("Space");
+  await expect(
+    page.getByRole("menuitemradio", { name: "Dark", exact: true }),
+  ).toHaveAttribute("aria-checked", "true");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await trigger.click();
+  await page.getByRole("heading", { name: "See what changed." }).click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await chooseTheme(page, "system");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(trigger).toContainText("System");
+  await trigger.press("ArrowDown");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("menu")).toBeHidden();
+  await expect(
+    page.getByRole("link", { name: "Source code on GitHub" }),
+  ).toBeFocused();
 });
 
 test("layout keeps two panes at smaller desktop widths and keyboard focus is visible", async ({
