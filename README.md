@@ -10,6 +10,7 @@ A free, browser-only code and text comparer. Paste two versions or open local fi
 - Expand the workspace to fill the browser tab for longer code; use **Exit** or **Escape** to return.
 - Automatic language detection with a shared manual override.
 - Local UTF-8 file import, swap, clear, and preserved undo history when entering comparison.
+- Copy either pane's complete text with its **Copy** button. **Tab** moves from Original to Modified; **Shift + Tab** returns. Tab navigates controls instead of inserting indentation.
 - Whitespace-sensitive comparison and explicit results for identical text.
 - System, light, and dark themes; accessible labeled controls and keyboard shortcuts.
 
@@ -29,6 +30,8 @@ Whitespace, case, blank lines, and final-newline differences are significant. CR
 Desktop browsers are the supported target. The toolbar adapts to smaller windows, while preserving two editor panes. Monaco does not officially support mobile browsers.
 
 ## Privacy
+
+**Copy** writes the selected pane's text to your device clipboard only when clicked. It does not upload text or save a comparison.
 
 Text, filenames, language detection, and diff computation stay in browser memory. There is no backend, analytics, content upload, remote language service, saved comparison, or share link. Refreshing or leaving the page discards your input. Only the color theme preference is saved in local storage.
 

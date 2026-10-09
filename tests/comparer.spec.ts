@@ -32,6 +32,172 @@ async function replaceText(
 }
 const status = (page: Page) => page.getByTestId("comparison-status");
 
+test("copy buttons use complete current text before and after comparison, edits, and swap", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          (window as Window & { copiedText?: string }).copiedText = text;
+        },
+      },
+    });
+  });
+  const originalCopy = page.getByRole("button", {
+    name: "Copy original text",
+    exact: true,
+  });
+  const modifiedCopy = page.getByRole("button", {
+    name: "Copy modified text",
+    exact: true,
+  });
+  await expect(originalCopy).toBeDisabled();
+  await expect(modifiedCopy).toBeDisabled();
+  const original = "  Grüße 🙂\n\nconst value = 1;\n";
+  const modified = "  Grüße 🙂\n\nconst value = 2;\n";
+  await replaceText(page, "Original", original);
+  await replaceText(page, "Modified", modified);
+  await originalCopy.click();
+  await expect(originalCopy).toContainText("Copied");
+  expect(
+    await page.evaluate(
+      () => (window as Window & { copiedText?: string }).copiedText,
+    ),
+  ).toBe(original);
+  await modifiedCopy.click();
+  expect(
+    await page.evaluate(
+      () => (window as Window & { copiedText?: string }).copiedText,
+    ),
+  ).toBe(modified);
+  await page.getByRole("button", { name: "Compare", exact: true }).click();
+  await expect(status(page)).toContainText("1 change region");
+  const edited = modified + "// Latest edit\n";
+  await replaceText(page, "Modified", edited);
+  await modifiedCopy.click();
+  expect(
+    await page.evaluate(
+      () => (window as Window & { copiedText?: string }).copiedText,
+    ),
+  ).toBe(edited);
+  await page.getByRole("button", { name: "Swap", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Expand workspace", exact: true })
+    .click();
+  await originalCopy.click();
+  expect(
+    await page.evaluate(
+      () => (window as Window & { copiedText?: string }).copiedText,
+    ),
+  ).toBe(edited);
+  await modifiedCopy.click();
+  expect(
+    await page.evaluate(
+      () => (window as Window & { copiedText?: string }).copiedText,
+    ),
+  ).toBe(original);
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  await expect(originalCopy).toBeDisabled();
+  await expect(modifiedCopy).toBeDisabled();
+});
+
+test("blocked clipboard reports failure and leaves content intact", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new DOMException("Blocked", "NotAllowedError");
+        },
+      },
+    });
+  });
+  await replaceText(page, "Original", "keep this text\n");
+  const copy = page.getByRole("button", {
+    name: "Copy original text",
+    exact: true,
+  });
+  await copy.click();
+  await expect(copy).toContainText("Copy failed");
+  await expect(
+    page.locator(".pane-actions [role=status]").first(),
+  ).toContainText("Clipboard access was blocked");
+  await expect(page.locator(".pane-footers > div").first()).toContainText(
+    "15 chars",
+  );
+  await expect(status(page)).toContainText("Ready to compare");
+});
+
+test("copy works with the browser clipboard", async ({
+  page,
+  context,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== "chromium",
+    "Clipboard reading permissions are only supported by Playwright in Chromium.",
+  );
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  const text = "Unicode 🙂\n  whitespace\n\n";
+  await replaceText(page, "Original", text);
+  await page
+    .getByRole("button", { name: "Copy original text", exact: true })
+    .click();
+  // Windows converts LF to CRLF in the native clipboard.
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied.replace(/\r\n/g, "\n")).toBe(text);
+});
+
+test("Tab moves between editors without changing text and can leave the workspace", async ({
+  page,
+}) => {
+  const original = page.getByRole("textbox", {
+    name: "Original text",
+    exact: true,
+  });
+  const modified = page.getByRole("textbox", {
+    name: "Modified text",
+    exact: true,
+  });
+  await original.press("Tab");
+  await expect(modified).toBeFocused();
+  await modified.press("Shift+Tab");
+  await expect(original).toBeFocused();
+  await original.press("Shift+Tab");
+  await expect(
+    page.getByRole("button", { name: "Open modified file", exact: true }),
+  ).toBeFocused();
+  await replaceText(page, "Original", "const value = 1;\n");
+  await replaceText(page, "Modified", "const value = 2;\n");
+  await original.press("Tab");
+  await expect(modified).toBeFocused();
+  await expect(page.locator(".pane-footers > div").first()).toContainText(
+    "17 chars",
+  );
+  await page.getByRole("button", { name: "Compare", exact: true }).click();
+  await expect(status(page)).toContainText("1 change region");
+  await page
+    .getByRole("button", { name: "Expand workspace", exact: true })
+    .click();
+  await original.press("Tab");
+  await expect(modified).toBeFocused();
+  await modified.press("Shift+Tab");
+  await expect(original).toBeFocused();
+  await original.press("Tab");
+  await modified.press("Tab");
+  await expect(
+    page.getByRole("button", { name: "Previous change", exact: true }),
+  ).toBeFocused();
+  await expect(status(page)).toContainText("1 change region");
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  await original.press("Tab");
+  await expect(modified).toBeFocused();
+});
+
 test.beforeEach(async ({ page }) => {
   await page.goto("./");
   await expect(

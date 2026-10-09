@@ -37,6 +37,7 @@ import {
 } from "./text";
 
 import { ThemePicker, type ThemeChoice } from "./ThemePicker";
+import { CopyButton } from "./CopyButton";
 type Source = { text: string; filename?: string };
 const REPO_URL = "https://github.com/ComeGetMe61/text-comparer-app";
 
@@ -363,20 +364,24 @@ function App() {
                     {languageLabel(languages[side])}
                   </span>
                 </div>
-                <button
-                  className="open-file"
-                  onClick={() =>
-                    (side === "original"
-                      ? originalFile
-                      : modifiedFile
-                    ).current?.click()
-                  }
-                  disabled={!!importing}
-                  aria-label={`Open ${side} file`}
-                >
-                  <FileUp size={14} />
-                  {importing === side ? "Reading…" : "Open file"}
-                </button>
+                <div className="pane-actions">
+                  <CopyButton side={side} text={sources[side].text} />
+                  <button
+                    className="open-file"
+                    onClick={() =>
+                      (side === "original"
+                        ? originalFile
+                        : modifiedFile
+                      ).current?.click()
+                    }
+                    disabled={!!importing}
+                    aria-label={`Open ${side} file`}
+                    title={`Open ${side} file`}
+                  >
+                    <FileUp size={14} />
+                    <span>{importing === side ? "Reading…" : "Open file"}</span>
+                  </button>
+                </div>
                 <input
                   className="file-input"
                   ref={side === "original" ? originalFile : modifiedFile}

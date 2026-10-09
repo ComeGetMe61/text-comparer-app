@@ -60,7 +60,42 @@ const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
   unicodeHighlight: { ambiguousCharacters: false },
   stickyScroll: { enabled: false },
   tabSize: 2,
+  tabFocusMode: true,
 };
+
+function bindPaneNavigation(
+  original: monaco.editor.IStandaloneCodeEditor,
+  modified: monaco.editor.IStandaloneCodeEditor,
+) {
+  return [
+    original.onKeyDown((event) => {
+      if (
+        event.keyCode === monaco.KeyCode.Tab &&
+        !event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        modified.focus();
+      }
+    }),
+    modified.onKeyDown((event) => {
+      if (
+        event.keyCode === monaco.KeyCode.Tab &&
+        event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        original.focus();
+      }
+    }),
+  ];
+}
 
 export const EditorWorkspace = forwardRef<WorkspaceHandle, Props>(
   function EditorWorkspace(props, ref) {
@@ -157,7 +192,9 @@ export const EditorWorkspace = forwardRef<WorkspaceHandle, Props>(
           ariaLabel: "Modified text",
           placeholder: "Paste modified text here…",
         });
+        const navigation = bindPaneNavigation(original, modified);
         return () => {
+          navigation.forEach((listener) => listener.dispose());
           original.dispose();
           modified.dispose();
         };
@@ -182,6 +219,10 @@ export const EditorWorkspace = forwardRef<WorkspaceHandle, Props>(
         modifiedAriaLabel: "Modified text",
       });
       diffRef.current = diff;
+      const navigation = bindPaneNavigation(
+        diff.getOriginalEditor(),
+        diff.getModifiedEditor(),
+      );
       const listener = diff.onDidUpdateDiff(() => {
         // Pinned Monaco exposes timeout metadata at runtime, but omits it from
         // public typings. Fail closed if an upgrade removes this capability.
@@ -206,19 +247,16 @@ export const EditorWorkspace = forwardRef<WorkspaceHandle, Props>(
       diff.setModel({ original: models.original, modified: models.modified });
       // Set labels on the inner editors after the diff's initial option pass.
       // Monaco 0.57 resets construction-time labels during that pass.
-      diff
-        .getOriginalEditor()
-        .updateOptions({
-          ariaLabel: "Original text",
-          placeholder: "Paste original text here…",
-        });
-      diff
-        .getModifiedEditor()
-        .updateOptions({
-          ariaLabel: "Modified text",
-          placeholder: "Paste modified text here…",
-        });
+      diff.getOriginalEditor().updateOptions({
+        ariaLabel: "Original text",
+        placeholder: "Paste original text here…",
+      });
+      diff.getModifiedEditor().updateOptions({
+        ariaLabel: "Modified text",
+        placeholder: "Paste modified text here…",
+      });
       return () => {
+        navigation.forEach((listener) => listener.dispose());
         listener.dispose();
         diff.dispose();
         diffRef.current = null;
