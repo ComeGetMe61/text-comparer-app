@@ -50,4 +50,23 @@ test("light and dark workspace visual reference", async ({
     path: testInfo.outputPath("dark-theme-menu.png"),
     fullPage: true,
   });
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Expand workspace", exact: true })
+    .click();
+  await page.screenshot({
+    path: testInfo.outputPath("dark-expanded.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Exit expanded view", exact: true })
+    .click();
+  await chooseTheme(page, "light");
+  await page
+    .getByRole("button", { name: "Expand workspace", exact: true })
+    .click();
+  await page.screenshot({
+    path: testInfo.outputPath("light-expanded.png"),
+    fullPage: true,
+  });
 });

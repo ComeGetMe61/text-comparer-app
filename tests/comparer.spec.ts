@@ -332,3 +332,69 @@ test("layout keeps two panes at smaller desktop widths and keyboard focus is vis
     page.getByRole("link", { name: "Skip to comparison workspace" }),
   ).toBeFocused();
 });
+
+test("expanded workspace fills the tab and preserves long comparisons and undo", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const original = Array.from(
+    { length: 120 },
+    (_, index) => `const line${index} = ${index};`,
+  ).join("\n");
+  const modified = original.replace(
+    "const line100 = 100;",
+    "const line100 = 101;",
+  );
+  await replaceText(page, "Original", original);
+  await replaceText(page, "Modified", modified);
+  const normalHeight = (await page.locator(".editor-body").boundingBox())!
+    .height;
+  await page
+    .getByRole("button", { name: "Expand workspace", exact: true })
+    .click();
+  await expect(page.locator(".site-header")).toBeHidden();
+  await expect(page.locator(".intro")).toBeHidden();
+  const bounds = (await page
+    .getByRole("region", { name: "Comparison workspace", exact: true })
+    .boundingBox())!;
+  expect(bounds.x).toBe(12);
+  expect(bounds.y).toBe(12);
+  expect(bounds.width).toBe(1416);
+  expect(bounds.height).toBe(876);
+  expect(
+    (await page.locator(".editor-body").boundingBox())!.height,
+  ).toBeGreaterThan(normalHeight + 150);
+  await page.getByRole("button", { name: "Compare", exact: true }).click();
+  await expect(status(page)).toContainText("1 change region");
+  await page.getByRole("button", { name: "Next change", exact: true }).click();
+  await expect(page.locator(".diff-host .modified .view-lines")).toContainText(
+    "const line100 = 101;",
+  );
+  await page
+    .getByRole("textbox", { name: "Modified text", exact: true })
+    .press("Escape");
+  const expand = page.getByRole("button", {
+    name: "Expand workspace",
+    exact: true,
+  });
+  await expect(expand).toBeFocused();
+  await expect(page.locator(".site-header")).toBeVisible();
+  await expect(status(page)).toContainText("1 change region");
+  await expand.click();
+  await page
+    .getByRole("textbox", { name: "Modified text", exact: true })
+    .press("ControlOrMeta+Z");
+  await expect(page.locator(".pane-footers > div").last()).toContainText(
+    "0 chars",
+  );
+  await page
+    .getByRole("textbox", { name: "Modified text", exact: true })
+    .press("ControlOrMeta+Shift+Z");
+  await expect(status(page)).toContainText("1 change region");
+  await page
+    .getByRole("button", { name: "Exit expanded view", exact: true })
+    .click();
+  await expect(expand).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  await expect(status(page)).toContainText("Ready to compare");
+});

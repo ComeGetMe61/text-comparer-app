@@ -815,3 +815,33 @@ main {
   height: auto;
   min-height: 220px;
 }
+.app-shell.is-expanded {
+  max-width: none;
+  min-height: 360px;
+  padding: 12px;
+}
+.is-expanded .site-header,
+.is-expanded .intro,
+.is-expanded .site-footer,
+.is-expanded .workspace-hint {
+  display: none;
+}
+.is-expanded .workspace,
+.is-expanded .editor-body {
+  min-height: 0;
+}
+.is-expanded .workspace-toolbar {
+  height: 54px;
+}
+.workspace-expand[aria-pressed="true"] {
+  background: var(--tint);
+  color: var(--accent);
+}
+.is-expanded .error-banner {
+  flex-shrink: 0;
+}
+@media (max-width: 1000px) {
+  .workspace-expand > span {
+    display: none;
+  }
+}

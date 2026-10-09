@@ -11,6 +11,8 @@ import {
   Github,
   GitCompareArrows,
   LoaderCircle,
+  Maximize2,
+  Minimize2,
   Play,
   ShieldCheck,
   Trash2,
@@ -53,6 +55,7 @@ function App() {
     modified: { text: "" },
   });
   const [compared, setCompared] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<ComparisonStatus>({ kind: "idle" });
   const [language, setLanguage] = useState<LanguageChoice>("auto");
   const [themeChoice, setThemeChoice] = useState<ThemeChoice>(readTheme);
@@ -62,6 +65,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState<Side | null>(null);
   const workspace = useRef<WorkspaceHandle>(null);
+  const expandButton = useRef<HTMLButtonElement>(null);
   const originalFile = useRef<HTMLInputElement>(null);
   const modifiedFile = useRef<HTMLInputElement>(null);
   const importVersion = useRef(0);
@@ -133,6 +137,11 @@ function App() {
   }, [overLimit, importing]);
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
+      if (expanded && event.key === "Escape") {
+        event.preventDefault();
+        setExpanded(false);
+        expandButton.current?.focus();
+      }
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
         event.preventDefault();
         compare();
@@ -140,7 +149,7 @@ function App() {
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [compare]);
+  }, [compare, expanded]);
 
   const importFile = async (side: Side, file?: File) => {
     if (!file) return;
@@ -204,7 +213,7 @@ function App() {
   const compareShortcut = `${navigator.platform.includes("Mac") ? "⌘" : "Ctrl"} + Enter`;
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${expanded ? " is-expanded" : ""}`}>
       <a className="skip-link" href="#workspace">
         Skip to comparison workspace
       </a>
@@ -319,6 +328,24 @@ function App() {
                 <Play size={13} fill="currentColor" />
                 <span>Compare</span>
                 <kbd aria-hidden="true">{compareShortcut}</kbd>
+              </button>
+              <button
+                ref={expandButton}
+                className="button quiet workspace-expand"
+                aria-label={
+                  expanded ? "Exit expanded view" : "Expand workspace"
+                }
+                aria-pressed={expanded}
+                title={
+                  expanded
+                    ? "Exit expanded view (Escape)"
+                    : "Expand workspace to fill this tab"
+                }
+                onClick={() => setExpanded((current) => !current)}
+              >
+                {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                <span>{expanded ? "Exit" : "Expand"}</span>
+                {expanded && <kbd aria-hidden="true">Esc</kbd>}
               </button>
             </div>
           </div>

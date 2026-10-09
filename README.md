@@ -7,6 +7,7 @@ A free, browser-only code and text comparer. Paste two versions or open local fi
 ## Features
 
 - Side-by-side Monaco editors with syntax coloring, line numbers, and change navigation.
+- Expand the workspace to fill the browser tab for longer code; use **Exit** or **Escape** to return.
 - Automatic language detection with a shared manual override.
 - Local UTF-8 file import, swap, clear, and preserved undo history when entering comparison.
 - Whitespace-sensitive comparison and explicit results for identical text.
