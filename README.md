@@ -2,6 +2,8 @@
 
 A free, browser-only code and text comparer. Paste two versions or open local files, press **Compare**, and see highlighted line and character differences. Both sides remain editable, with live comparison after the first click.
 
+**[Open Text Comparer](https://comegetme61.github.io/text-comparer-app/)** · [Source on GitHub](https://github.com/ComeGetMe61/text-comparer-app)
+
 ## Features
 
 - Side-by-side Monaco editors with syntax coloring, line numbers, and change navigation.
@@ -57,7 +59,7 @@ The build dependencies use the official Rollup and esbuild WebAssembly distribut
 
 ## GitHub Pages deployment
 
-The intended public repository is `ComeGetMe61/text-comparer-app`. Set **Settings → Pages → Source** to **GitHub Actions**. The workflow checks pull requests; successful builds on `main` deploy `dist/` to Pages after unit and browser tests pass.
+The public repository is [ComeGetMe61/text-comparer-app](https://github.com/ComeGetMe61/text-comparer-app), deployed at [comegetme61.github.io/text-comparer-app](https://comegetme61.github.io/text-comparer-app/). **Settings → Pages → Source** is configured to **GitHub Actions**. The workflow checks pull requests; successful builds on `main` deploy `dist/` to Pages after unit and browser tests pass.
 
 Vite's base is `/text-comparer-app/`, including application and worker assets. If renaming the repository, update the Vite base, test base URL, and source links together. No client-side route rewrites or custom domain are needed.
 
